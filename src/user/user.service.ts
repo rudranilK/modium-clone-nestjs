@@ -6,7 +6,6 @@ import { UserEntity } from "./user.entity";
 import { omit } from "lodash";
 import { sign } from "jsonwebtoken";
 import { JWT_SECRET } from "@app/config";
-// import { JWT_SECRET } from "../config";
 import { UserResponseInterface } from "./types/userResponse.interface";
 import loginUserDto from "./dto/loginUser.dto";
 import { compare } from 'bcrypt';
