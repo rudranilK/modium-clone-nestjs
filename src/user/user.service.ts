@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import CreateUserDto from "./dto/createUser.dto";
@@ -6,7 +6,11 @@ import { UserEntity } from "./user.entity";
 import { omit } from "lodash";
 import { sign } from "jsonwebtoken";
 import { JWT_SECRET } from "@app/config";
+// import { JWT_SECRET } from "../config";
 import { UserResponseInterface } from "./types/userResponse.interface";
+import loginUserDto from "./dto/loginUser.dto";
+import { compare } from 'bcrypt';
+
 
 @Injectable()
 export class UserService{
@@ -18,6 +22,18 @@ export class UserService{
 
     async createUser(createUserDto: CreateUserDto): Promise<UserResponseInterface>{
 
+        let user = await this.userRepository.findOne({
+            where: [                                        // WHERE email = email OR username = username
+                { email: createUserDto['email'] },
+                { username: createUserDto['username']}
+            ]
+        });
+
+        if(user) 
+            throw new HttpException(
+                `Username : '${createUserDto['username']}' OR Email: '${createUserDto['email']}' already taken!!`, 
+                HttpStatus.UNPROCESSABLE_ENTITY);
+
     //creating a new user
         let newUser = new UserEntity();
 
@@ -28,6 +44,19 @@ export class UserService{
         newUser = await this.userRepository.save(newUser);
 
         return this.buildUserResponse(newUser);
+    }
+
+    async loginUser(loginUserDto: loginUserDto): Promise<UserResponseInterface>{
+        const user = await this.userRepository.findOne({
+            where: { email: loginUserDto['email'] }
+        });
+
+        if(!user) throw new HttpException(`Invalid Email Or Password`, HttpStatus.BAD_REQUEST);
+
+        const validPassword = await compare(loginUserDto['password'], user.password);
+        if(!validPassword) throw new HttpException(`Invalid Email Or Password`, HttpStatus.BAD_REQUEST);
+
+        return this.buildUserResponse(user);
     }
 
     buildUserResponse(user: UserEntity): UserResponseInterface{
