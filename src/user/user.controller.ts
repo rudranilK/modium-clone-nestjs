@@ -3,8 +3,8 @@ import CreateUserDto from "./dto/createUser.dto";
 import loginUserDto from "./dto/loginUser.dto";
 import { UserResponseInterface } from "./types/userResponse.interface";
 import { UserService } from "./user.service";
-// import { Request } from "express";
-import ExpressRequest from "@app/types/expressRequest.interface";
+import { User } from "./decorators/user.decorator";
+import { UserEntity } from "./user.entity";
 
 
 @Controller('/api')
@@ -24,7 +24,7 @@ export class UserController{
     }
 
     @Get('/user')
-    getCurrentUser(@Req() req: ExpressRequest): UserResponseInterface{
-        return this.userService.buildUserResponse(req.user);
+    getCurrentUser(@User() user: UserEntity): UserResponseInterface{
+        return this.userService.buildUserResponse(user);
     }
 } 

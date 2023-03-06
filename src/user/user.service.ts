@@ -62,7 +62,7 @@ export class UserService{
     buildUserResponse(user: UserEntity): UserResponseInterface{
         return { 
             user: {
-                ...omit( user, ['id'] ),                // [ 'id', 'password']
+                ...omit( user, ['id', 'password'] ),
                 token: this.generateJWT(user)           //add JWT to response body
             } 
         }
