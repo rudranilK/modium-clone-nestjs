@@ -47,8 +47,9 @@ export class UserService{
 
     async loginUser(loginUserDto: loginUserDto): Promise<UserResponseInterface>{
         const user = await this.userRepository.findOne({
-            where: { email: loginUserDto['email'] }
-        });
+            where: { email: loginUserDto['email'] }, 
+            select: ['id', 'username', 'email', 'password', 'bio','image']          // We made 'select: false' in UserEntity as we will re use it in many places,
+        });                                                                         // But we nned password here for comparasion.
 
         if(!user) throw new HttpException(`Invalid Email Or Password`, HttpStatus.BAD_REQUEST);
 
@@ -61,7 +62,7 @@ export class UserService{
     buildUserResponse(user: UserEntity): UserResponseInterface{
         return { 
             user: {
-                ...omit( user, ['id', 'password'] ),
+                ...omit( user, ['id'] ),                // [ 'id', 'password']
                 token: this.generateJWT(user)           //add JWT to response body
             } 
         }
@@ -77,6 +78,10 @@ export class UserService{
             },
             JWT_SECRET          //For now stored in config.js but have to be stored in ENV variables
         );
+    }
+
+    async findUserById(id: number): Promise<UserEntity>{
+        return await this.userRepository.findOne({ where : {id: id}});
     }
 }
 

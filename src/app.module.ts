@@ -6,14 +6,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import ormconfig from '@app/ormconfig';
 import { UserModule } from './user/user.module';
 import { AuthMiddleware } from './middlewares/auth.middleware';
-import { UserController } from './user/user.controller';
 
 @Module({
   imports: [TypeOrmModule.forRoot(ormconfig), TagModule, UserModule],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService],    // 'UserService' Module is needed in Auth middleware as we are using the DB call there
 })
-export class AppModule implements NestModule{           //Implementing Auth middleware
+export class AppModule implements NestModule{           //Implementing Auth middleware globally for all reqs except a few
   configure(consumer: MiddlewareConsumer) {         
     consumer
     .apply(AuthMiddleware)

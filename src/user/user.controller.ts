@@ -3,11 +3,13 @@ import CreateUserDto from "./dto/createUser.dto";
 import loginUserDto from "./dto/loginUser.dto";
 import { UserResponseInterface } from "./types/userResponse.interface";
 import { UserService } from "./user.service";
-import { Request } from "express";
+// import { Request } from "express";
+import ExpressRequest from "@app/types/expressRequest.interface";
+
 
 @Controller('/api')
 export class UserController{
-    constructor(private readonly userService: UserService){}
+    constructor(private readonly userService: UserService){}        //Dependency Injection
 
     @Post('/users')
     @UsePipes(new ValidationPipe())         //Adding Validations for our DTO i.e. req payload
@@ -22,7 +24,7 @@ export class UserController{
     }
 
     @Get('/user')
-    async getCurrentUser(@Req() req: Request): Promise<any>{
-        return 'current user' as any;
+    getCurrentUser(@Req() req: ExpressRequest): UserResponseInterface{
+        return this.userService.buildUserResponse(req.user);
     }
 } 
