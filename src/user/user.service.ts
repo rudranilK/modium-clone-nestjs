@@ -9,6 +9,7 @@ import { JWT_SECRET } from "@app/config";
 import { UserResponseInterface } from "./types/userResponse.interface";
 import loginUserDto from "./dto/loginUser.dto";
 import { compare } from 'bcrypt';
+import UpdateUserDto from "./dto/updateUser.dto";
 
 
 @Injectable()
@@ -83,5 +84,15 @@ export class UserService{
     async findUserById(id: number): Promise<UserEntity>{
         return await this.userRepository.findOne({ where : {id: id}});
     }
-}
 
+    async updateUser(updateUserDto: UpdateUserDto, user: UserEntity): Promise<UserResponseInterface>{
+
+        // const record = await this.userRepository.update({ id },updateUserDto);
+        // const record = await this.userRepository.save({ id: id , ...updateUserDto });
+
+        Object.assign(user,updateUserDto);
+        const updatedUser = await this.userRepository.save(user);
+
+        return this.buildUserResponse(updatedUser);
+    }
+}
