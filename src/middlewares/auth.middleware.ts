@@ -10,18 +10,24 @@ export class AuthMiddleware implements NestMiddleware{                   // midd
 
     constructor(private readonly userService: UserService){}             //Injecting the sertvice layer
 
-    async use(req: ExpressRequest, _: Response, next: NextFunction) {    //repaced var name 'res' with '_' as it is unused
+    async use(req: ExpressRequest, _: Response, next: NextFunction) {       //repaced var name 'res' with '_' as it is unused
 
-        const token = req.header('Authorization')?.split(' ')?.[1];      // Header Format -> Authorization : 'Token <jwt.token.here>'
-        if(!token)
-            throw new HttpException('Access Denied! No token provided.', HttpStatus.BAD_REQUEST);
+        const token = req.header('Authorization')?.split(' ')?.[1];         // Header Format -> Authorization : 'Token <jwt.token.here>'
+        if(!token || token === undefined){
+            // throw new HttpException('Access Denied! No token provided.', HttpStatus.BAD_REQUEST);
+            req.user = null;
+            next();
+            return;
+        }
 
         try {
             const decoded = verify(token, JWT_SECRET);
             req.user = await this.userService.findUserById(decoded['id']);
-            next();                             //Call goes to controller layer/next middleware
+            next();                                                         //Call goes to controller layer/next middleware
         } catch (e) {
-            throw new HttpException('Invalid Token!!', HttpStatus.BAD_REQUEST);
+            // throw new HttpException('Invalid Token!!', HttpStatus.BAD_REQUEST);
+            req.user = null;
+            next();
         }
     }
 }
