@@ -17,7 +17,10 @@ export class AppModule implements NestModule{           //Implementing Auth midd
   configure(consumer: MiddlewareConsumer) {         
     consumer
     .apply(AuthMiddleware)
-    .exclude('api/users(.*)')                          // Skip for every route that has '/api/users' in it. e.g. '/api/users' && '/api/users/login'
+    .exclude( 
+      { path: '/api/articles/:slug', method: RequestMethod.GET },
+      'api/users(.*)'                                   // Skip for every route that has '/api/users' in it. e.g. '/api/users' && '/api/users/login'
+      )                          
     // .forRoutes(UserController)
     .forRoutes({
       path: '*',

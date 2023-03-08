@@ -18,14 +18,9 @@ export class ArticleController {
     return await this.articleService.createArticle(user, createArticleDto);
   }
 
-  @Get()
-  findAll() {
-    return this.articleService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.articleService.findOne(+id);
+  @Get(':slug')
+  async getArticleBySlug(@Param('slug') slug: string): Promise<ArticleResponseInterface | {}>{
+    return await this.articleService.getArticleBySlug(slug);
   }
 
   @Put(':id')
@@ -33,8 +28,9 @@ export class ArticleController {
     return this.articleService.update(+id, updateArticleDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.articleService.remove(+id);
+  @Delete(':slug')
+  @UseGuards(AuthGuard)
+  async removeBySlug(@Param('slug') slug: string, @User('id') userId: number){
+    return await this.articleService.removeArticleBySlug(slug, userId);
   }
 }
