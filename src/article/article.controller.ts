@@ -4,7 +4,6 @@ import { UserEntity } from '@app/user/user.entity';
 import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ArticleService } from './article.service';
 import CreateArticleDto from './dto/createArticle.dto';
-import { UpdateArticleDto } from './dto/updateArticle.dto';
 import ArticleResponseInterface from './types/articleResponse.interface';
 
 @Controller('/api/articles')
@@ -14,23 +13,25 @@ export class ArticleController {
   @Post()
   @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe())
-  async create( @User() user: UserEntity, @Body('article') createArticleDto: CreateArticleDto ): Promise<ArticleResponseInterface> {
+  async createArticle( @User() user: UserEntity, @Body('article') createArticleDto: CreateArticleDto ): Promise<ArticleResponseInterface> {
     return await this.articleService.createArticle(user, createArticleDto);
   }
 
   @Get(':slug')
-  async getArticleBySlug(@Param('slug') slug: string): Promise<ArticleResponseInterface | {}>{
+  async getArticle(@Param('slug') slug: string): Promise<ArticleResponseInterface | {}>{
     return await this.articleService.getArticleBySlug(slug);
   }
 
-  @Put(':id')
-  update(@Param('id') id: string, @Body() updateArticleDto: UpdateArticleDto) {
-    return this.articleService.update(+id, updateArticleDto);
+  @Put(':slug')
+  @UseGuards(AuthGuard)
+  @UsePipes(new ValidationPipe())
+  async updateArticle(@User('id') userId: number, @Param('slug') slug: string, @Body('article') updateArticleDto: CreateArticleDto): Promise<ArticleResponseInterface> {
+    return await this.articleService.updateArticle(userId, slug, updateArticleDto);
   }
 
   @Delete(':slug')
   @UseGuards(AuthGuard)
-  async removeBySlug(@Param('slug') slug: string, @User('id') userId: number){
+  async removeArticle(@Param('slug') slug: string, @User('id') userId: number){
     return await this.articleService.removeArticleBySlug(slug, userId);
   }
 }

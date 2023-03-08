@@ -4,7 +4,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository } from 'typeorm';
 import { ArticleEntity } from './article.entity';
 import CreateArticleDto from './dto/createArticle.dto';
-import { UpdateArticleDto } from './dto/updateArticle.dto';
 import ArticleResponseInterface from './types/articleResponse.interface';
 import { omit } from 'lodash';
 import slugify from 'slugify';
@@ -50,17 +49,31 @@ export class ArticleService {
     return { result: HttpStatus.NOT_FOUND};
   }
 
-  update(id: number, updateArticleDto: UpdateArticleDto) {
-    return `This action updates a #${id} article`;
+  async updateArticle(userId: number, slug: string, updateArticleDto: CreateArticleDto): Promise<ArticleResponseInterface> {
+
+    const article = await this.findLegitArticle(userId, slug);
+
+    Object.assign(article, updateArticleDto);
+    article.slug = this.getSlug(article.title);
+
+    const result = await this.articleRepository.save(article);
+
+    return this.buildArticleResponse(result);
   }
 
-  async removeArticleBySlug(slug: string, userId: number): Promise<DeleteResult> {
-
+  private async findLegitArticle(userId: number, slug: string): Promise<ArticleEntity>{
     const article = await this.findBySlug(slug);
 
     if(!article) throw new HttpException(`Article does not exist!!`, HttpStatus.NOT_FOUND);
 
     if(article.author?.id !== userId) throw new HttpException(`You are not an Author!!`, HttpStatus.FORBIDDEN);
+
+    return article;
+  }
+
+  async removeArticleBySlug(slug: string, userId: number): Promise<DeleteResult> {
+
+    const article = await this.findLegitArticle(userId, slug);
       
     return await this.articleRepository.delete({
       slug,
