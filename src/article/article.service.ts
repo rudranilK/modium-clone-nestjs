@@ -1,19 +1,20 @@
 import { UserEntity } from '@app/user/user.entity';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeleteResult, Repository } from 'typeorm';
+import { DataSource, DeleteResult, getRepository, Repository } from 'typeorm';
 import { ArticleEntity } from './article.entity';
 import CreateArticleDto from './dto/createArticle.dto';
 import ArticleResponseInterface from './types/articleResponse.interface';
 import { omit } from 'lodash';
 import slugify from 'slugify';
+import ArticlesResponseInterface from './types/articlesResponse.interface';
 
 @Injectable()
 export class ArticleService {
 
   constructor(
     @InjectRepository(ArticleEntity)
-    private readonly articleRepository: Repository<ArticleEntity> ){}
+    private readonly articleRepository: Repository<ArticleEntity>, private dataSource: DataSource ){}       //We don't need both, We can use the datasource only! We can refactor it later!
 
   async createArticle(user: UserEntity, createArticleDto: CreateArticleDto): Promise<ArticleResponseInterface> {
 
@@ -34,8 +35,37 @@ export class ArticleService {
     return this.buildArticleResponse(newArticle);
   }
 
-  findAll() {
-    return `This action returns all article`;
+  async findAll(userId: number, query: any): Promise<ArticlesResponseInterface> {
+
+    const queryBuilder = this.dataSource
+      .getRepository(ArticleEntity)
+      .createQueryBuilder('articles')
+      .leftJoinAndSelect('articles.author','author')         // 2nd param is alias for the joined column
+      .orderBy('articles.createdAt', 'DESC')
+
+    const articlesCount = await queryBuilder.getCount();
+
+  //Paginating the data
+    queryBuilder.limit( query.limit? query.limit: 20 )
+      .offset( query.offset? query.offset: 0 );
+
+  //Filter by Tag
+    if(query.tag){
+      queryBuilder.andWhere('articles.tagList LIKE :tag', {   // 'andWhere()' allows us to add more and more condtions to where clause!
+        tag: `%${query.tag}%`
+      });   
+    }
+
+  //Filter by author
+    if(query.author){
+      queryBuilder.andWhere('author.username = :author', {  
+        author: query.author
+      });   
+    }
+
+    const articles = await queryBuilder.getMany();
+
+    return { articles, articlesCount };
   }
 
   async findBySlug(slug: string): Promise<ArticleEntity> {
