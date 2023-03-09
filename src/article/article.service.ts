@@ -14,7 +14,10 @@ export class ArticleService {
 
   constructor(
     @InjectRepository(ArticleEntity)
-    private readonly articleRepository: Repository<ArticleEntity>, private dataSource: DataSource ){}       //We don't need both, We can use the datasource only! We can refactor it later!
+    private readonly articleRepository: Repository<ArticleEntity>,
+    @InjectRepository(UserEntity) 
+    private readonly userRepository: Repository<UserEntity>, 
+    private dataSource: DataSource ){}       //We don't need both, We can use the datasource only! We can refactor it later!
 
   async createArticle(user: UserEntity, createArticleDto: CreateArticleDto): Promise<ArticleResponseInterface> {
 
@@ -109,6 +112,28 @@ export class ArticleService {
       slug,
       id: article.id
     });
+  }
+
+  async likeArticle(slug: string, userId: number): Promise<ArticleResponseInterface>{
+
+    let article = await this.findBySlug(slug);                        // This API is missing the edgecase if 'article = null' -> 400 BAD REQUEST
+
+    const user = await this.userRepository.findOne({                  // We have to use this extra query, 
+      where: { id: userId },                                          // otherwise we won't get the 'favourites' part.
+      relations: ['favorites']
+    });
+
+    const isNotLiked = user.favorites.findIndex(item => item.id === article.id) === -1;
+
+    if(isNotLiked){                                                   // 'users_favorites_articles' -> We won't work with this table directly!!
+      user.favorites.push(article);
+      article.favoritesCount++;
+
+      await this.userRepository.save(user);
+      article = await this.articleRepository.save(article);
+    }
+
+    return this.buildArticleResponse(article); 
   }
 
   buildArticleResponse(article: ArticleEntity): ArticleResponseInterface {

@@ -63,7 +63,7 @@ export class UserService{
     buildUserResponse(user: UserEntity): UserResponseInterface{
         return { 
             user: {
-                ...omit( user, ['id', 'password'] ),
+                ...omit( user, ['id', 'password' /*, 'favorites', 'articles' */] ),  // 'favorites', 'articles' not part of 'users' table as per 'UserEntity' - it is managed by TypeOrm internally
                 token: this.generateJWT(user)           //add JWT to response body
             } 
         }

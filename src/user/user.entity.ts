@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn , Column, BeforeInsert, OneToMany} from "typeorm";
+import { Entity, PrimaryGeneratedColumn , Column, BeforeInsert, OneToMany, ManyToMany, JoinTable} from "typeorm";
 import { genSalt, hash } from 'bcrypt';
 import { ArticleEntity } from "@app/article/article.entity";
 
@@ -29,6 +29,10 @@ export class UserEntity{
         this.password = await hash(this.password, salt);
     }
 
-    @OneToMany(()=> ArticleEntity, (article) => article.author)
+    @OneToMany(() => ArticleEntity, (article) => article.author)        //User creates an article
     articles: ArticleEntity[]
+
+    @ManyToMany(() => ArticleEntity)                                    // One User can like multiple articles; an article can be liked by multiple users
+    @JoinTable()
+    favorites: ArticleEntity[];
 }

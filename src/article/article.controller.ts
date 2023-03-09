@@ -40,4 +40,11 @@ export class ArticleController {
   async removeArticle(@Param('slug') slug: string, @User('id') userId: number){
     return await this.articleService.removeArticleBySlug(slug, userId);
   }
+
+  @Post(':slug/favorite')
+  @UseGuards(AuthGuard)
+  async likeArticle(@Param('slug') slug: string, @User('id') userId: number): Promise<ArticleResponseInterface>{
+    return await this.articleService.likeArticle(slug, userId) as any;
+  }
+
 }
