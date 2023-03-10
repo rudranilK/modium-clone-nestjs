@@ -53,14 +53,14 @@ export class ArticleService {
       });   
     }
 
-    //Filter by author
+  //Filter by author
     if(query.author){
       queryBuilder.andWhere('author.username = :author', {  
         author: query.author
       });   
     }
   
-    //Filter by favourited
+  //Filter by favourited
     if(query.favorited){
   
         let satisfied = false;
@@ -97,7 +97,7 @@ export class ArticleService {
     queryBuilder.limit( query.limit? query.limit: 10 )
       .offset( query.offset? query.offset: 0 );
 
-  //Calculate the favourited property to display 'liked' for logged in user
+  //Calculate the favourited property to display 'liked' for logged in user - PART 1
     let favouriteIds: number[] = [];
     if(userId){
       const currentUser = await this.userRepository.findOne({                  // We have to use this extra query, 
@@ -108,7 +108,10 @@ export class ArticleService {
       favouriteIds = currentUser.favorites.map( i => i.id );
     }
 
+  //DB call
     const articles = await queryBuilder.getMany();
+
+  //Calculate favorited property - PART 2
     const favouritedArticles = articles.map( item => { 
       const favorited = favouriteIds.includes(item.id);
       return { ...item, favorited };
