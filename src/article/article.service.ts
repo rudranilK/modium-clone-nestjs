@@ -1,7 +1,7 @@
 import { UserEntity } from '@app/user/user.entity';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, DeleteResult, getRepository, Repository } from 'typeorm';
+import { DataSource, DeleteResult, Repository } from 'typeorm';
 import { ArticleEntity } from './article.entity';
 import CreateArticleDto from './dto/createArticle.dto';
 import ArticleResponseInterface from './types/articleResponse.interface';
@@ -44,13 +44,7 @@ export class ArticleService {
       .getRepository(ArticleEntity)
       .createQueryBuilder('articles')
       .leftJoinAndSelect('articles.author','author')         // 2nd param is alias for the joined column
-      .orderBy('articles.createdAt', 'DESC')
-
-    const articlesCount = await queryBuilder.getCount();
-
-  //Paginating the data
-    queryBuilder.limit( query.limit? query.limit: 20 )
-      .offset( query.offset? query.offset: 0 );
+      .orderBy('articles.createdAt', 'DESC');
 
   //Filter by Tag
     if(query.tag){
@@ -59,16 +53,68 @@ export class ArticleService {
       });   
     }
 
-  //Filter by author
+    //Filter by author
     if(query.author){
       queryBuilder.andWhere('author.username = :author', {  
         author: query.author
       });   
     }
+  
+    //Filter by favourited
+    if(query.favorited){
+  
+        let satisfied = false;
+  
+      //Fetching relation 'favorites' which is not included in Auth middleware
+        const user = await this.userRepository.findOne({
+          where: { username: query.favorited },
+          relations: ['favorites']
+        });
+  
+        if(user){                                       // The username might not exist!!
+  
+          let articleIds = user.favorites.map(e => e.id);
+  
+          if(articleIds.length){
+  
+            queryBuilder.andWhere('articles.id IN (:...ids)', {
+              ids: articleIds
+            });
+  
+            satisfied = true;
+          }
+        }
+  
+        if(!satisfied){                     //If the username doesn't have any favourited article || user doesn't exist, we must return empty array!!
+          queryBuilder.andWhere('1=0');     //This condition always reults to false, hence empty array will be returned!
+        }
+    }
+    
+  //After applying the filter, fetch count
+    const articlesCount = await queryBuilder.getCount();
+
+  //Paginating the data finally before fetching
+    queryBuilder.limit( query.limit? query.limit: 10 )
+      .offset( query.offset? query.offset: 0 );
+
+  //Calculate the favourited property to display 'liked' for logged in user
+    let favouriteIds: number[] = [];
+    if(userId){
+      const currentUser = await this.userRepository.findOne({                  // We have to use this extra query, 
+        where: { id: userId },                                          // otherwise we won't get the 'favourites' part.
+        relations: ['favorites']
+      });
+
+      favouriteIds = currentUser.favorites.map( i => i.id );
+    }
 
     const articles = await queryBuilder.getMany();
+    const favouritedArticles = articles.map( item => { 
+      const favorited = favouriteIds.includes(item.id);
+      return { ...item, favorited };
+    });
 
-    return { articles, articlesCount };
+    return { articles: favouritedArticles , articlesCount };
   }
 
   async findBySlug(slug: string): Promise<ArticleEntity> {
@@ -123,7 +169,7 @@ export class ArticleService {
       relations: ['favorites']
     });
 
-    const isNotLiked = user.favorites.findIndex(item => item.id === article.id) === -1;
+    const isNotLiked = user.favorites.findIndex(item => item.id === article?.id) === -1;
 
     if(isNotLiked){                                                   // 'users_favorites_articles' -> We won't work with this table directly!!
       user.favorites.push(article);
@@ -136,8 +182,31 @@ export class ArticleService {
     return this.buildArticleResponse(article); 
   }
 
+  //Refactor likeAtricle() & dislikeArticle() methods!!
+  async dislikeArticle(slug: string, userId: number): Promise<ArticleResponseInterface>{
+
+    let article = await this.findBySlug(slug);                        // This API is missing the edgecase if 'article = null' -> 400 BAD REQUEST
+
+    const user = await this.userRepository.findOne({                  // We have to use this extra query, 
+      where: { id: userId },                                          // otherwise we won't get the 'favourites' part.
+      relations: ['favorites']
+    });
+
+    const articleIndex = user.favorites.findIndex(item => item.id === article?.id);
+
+    if(articleIndex > -1){                                             
+      user.favorites.splice(articleIndex,1);
+      article.favoritesCount--;
+
+      await this.userRepository.save(user);
+      article = await this.articleRepository.save(article);
+    }
+
+    return this.buildArticleResponse(article); 
+  }
+
   buildArticleResponse(article: ArticleEntity): ArticleResponseInterface {
-      article.author = omit( article.author, ['id', 'email'] );
+      article.author = omit( article.author, ['id', 'email'] );      
       return {
         article: article
       }

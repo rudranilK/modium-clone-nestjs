@@ -47,4 +47,10 @@ export class ArticleController {
     return await this.articleService.likeArticle(slug, userId) as any;
   }
 
+  @Delete(':slug/favorite')
+  @UseGuards(AuthGuard)
+  async dislikeArticle(@Param('slug') slug: string, @User('id') userId: number): Promise<ArticleResponseInterface>{
+    return await this.articleService.dislikeArticle(slug, userId) as any;
+  }
+
 }
