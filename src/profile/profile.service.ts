@@ -36,7 +36,7 @@ export class ProfileService{
                 }
             });
 
-            followStatus = following?true: false;
+            followStatus = following? true: false;
         }
     
         return this.buildProfileResponse({ ...user, following: followStatus });
@@ -77,7 +77,21 @@ export class ProfileService{
     }
 
     async unfollowProfile( userId: number, username : string): Promise<ProfileResposeInterface>{
-        return 'returns profile' as any;
+
+        const unfollowProfile = await this.userRepository.findOne({
+            where: { username }
+        });
+
+        if(!unfollowProfile) throw new HttpException(`Username does not exist!`, HttpStatus.NOT_FOUND);
+
+        if(userId === unfollowProfile.id) throw new HttpException("Follower & Following Can't Be Same!!", HttpStatus.BAD_REQUEST);
+  
+        await this.followRepository.delete({    // delete() will not throw error if record doesn't exist!
+            followerId: userId,
+            followingId: unfollowProfile.id
+        });
+
+        return this.buildProfileResponse({ ...unfollowProfile, following: false });
     }
 
     buildProfileResponse(userProfile: Profiletype){
@@ -85,5 +99,4 @@ export class ProfileService{
             profile: pick(userProfile, ['username', 'bio', 'image', 'following'])
         }
     }
-    
 }
