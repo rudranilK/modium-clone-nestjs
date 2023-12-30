@@ -19,7 +19,7 @@ export class AppModule implements NestModule{           //Implementing Auth midd
     consumer
     .apply(AuthMiddleware)
     .exclude( 
-      { path: '/api/articles/:slug', method: RequestMethod.GET },
+      // { path: '/api/articles/:slug', method: RequestMethod.GET },
       'api/users(.*)',                                   // Skip for every route that has '/api/users' in it. e.g. 
       'api/tags(.*)'                                     // '/api/users' ,'/api/users/login' ,'/api/tags' 
       )                          
